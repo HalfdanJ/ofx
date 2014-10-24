@@ -217,11 +217,12 @@ class OFRoot(object):
 
 @click.group()
 @click.option('--of-root', envvar='OF_ROOT', default=None, help="Overwrite path to of root")
-@click.option('--of-api-url', envvar='OF_API_URL', default=None, help="Overwrite url to ofxaddons.com api")
+@click.option('--of-api-url', envvar='OF_API_URL', default="http://ofxaddons.com/api/v2/", help="Overwrite url to ofxaddons.com api")
 #@click.option('--debug/--no-debug', default=False,
 #              envvar='REPO_DEBUG')
 @click.pass_context
 def cli(ctx, of_root, of_api_url):
+    print of_api_url
     if not of_root:
         of_root = find_of_root()
     ctx.obj = OFRoot(of_root, of_api_url)
