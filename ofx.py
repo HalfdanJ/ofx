@@ -196,9 +196,8 @@ class OFRoot(object):
             for dependency in config['dependecies']:
                 #print dependency
                 try:
-                    addon = self.addon_registry.search(dependency)
-                    version = self.addon_registry.get_version_from_name(dependency)
-                    self.install_addon(addon, version)
+                    addon = self.get_addon(dependency)                    
+                    self.install_addon(addon)
 
                 except Exception as exc:
                     if exc[0] == 'OK':
@@ -253,7 +252,7 @@ def cli(ctx, of_root, of_api_url):
     if not of_root:
         of_root = find_of_root()
     ctx.obj = OFRoot(of_root, of_api_url)
-
+    ctx.obj.current_dir = os.getcwd()
 
 @cli.command()
 @click.argument('name')
@@ -261,9 +260,12 @@ def cli(ctx, of_root, of_api_url):
 def info(obj, name):
     """Returns info about an installed addon"""
     addon = obj.addon_registry.search(name)
-    addonPath = os.path.join(obj.get_addon_path(), addon.name)
-    if os.path.isdir(addonPath):
+    if addon:
+    #addonPath = os.path.join(obj.get_addon_path(), addon.name)
+    #if os.path.isdir(addonPath):
         addon.print_long()
+    else: 
+        print error() + "No addon named "+name+" found"
     pass
 
 
@@ -272,7 +274,6 @@ def info(obj, name):
 @click.pass_obj
 def install(obj, name):
     """Installs an addon, leave out addon name to install all dependencies for current project"""
-
     if len(name) == 0:
         # Search for dependency file
         filename = 'description.json'
@@ -307,9 +308,12 @@ def install(obj, name):
             print error()+"No addon named %s found" % name
         else:
             try:
-                obj.install_addon(addon)
+                obj.install_addon(addon)    
+                
             except Exception as exc:
                 print_exception(exc)
+
+    os.chdir(obj.current_dir)
     pass
 
 
