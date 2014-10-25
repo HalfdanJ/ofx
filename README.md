@@ -1,8 +1,17 @@
 OFX - OpenFrameworks Addon Manager
 ===
+### What is it
+This is a tool aimed to help installing and managing addons for openFrameworks. 
+
+### Features
+- Install addons
+- Automatic install dependency addons based on the addon_config.mk file
+
+### Future features
+- Save addon dependencies in projects
+- Read addon dependencies and install addons
 
 ### Install for development
-
 - Clone the repository and cd to it
 - Install python virtualenv `sudo pip install virtualenv`
 - Create a virtual enviroment inside the ofx tool `virtualenv venv`
