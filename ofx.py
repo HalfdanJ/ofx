@@ -7,6 +7,7 @@ import shutil
 import sh
 from sh import git
 
+
 def error(string="Error: "):
     return click.style(string, fg='red')
 
@@ -38,16 +39,20 @@ def find_of_root():
     return path
 
 
+class ProjectDescriptionFile:
+    def __init__(self, path):
+        f = open(os.path.abspath(path), 'r')
+        self.file = simplejson.load(f)
+        self.dependecies = self.file['ADDON_DEPENDENCIES']
+
+
+
 class Addon:
     def __init__(self, json):
         self.name = json['name']
-        self.name_l = self.name.lower()
         self.description = json['description'] or ''
-        self.description_l = self.description.lower()
         self.owner = json['owner']
-        self.owner_l = self.owner.lower()
         self.category = json['category']
-        self.category_l = self.category.lower()
         self.homepage = json['homepage']
         self.clone_url = json['clone_url']
         self.latest_commit = json['latest_commit']
@@ -88,7 +93,10 @@ class AddonsRegistry(object):
             json = self.call_api("addon/"+addon_name)
         if not json:
             return None
-        return Addon(json)
+
+        addon = Addon(json)
+        addon.version = self.get_version_from_name(name)
+        return addon
 
     def get_version_from_name(self, string):
         match = re.match("^(?:(?P<owner_name>\\w+)/)?(?P<addon_name>\\w+)(?:@(?P<version>[\\w\.]+))?", string, re.I)
@@ -115,11 +123,19 @@ class OFRoot(object):
                 addons.append(n)
         return addons
 
+    def get_addon(self, addon_string):
+
+        # Look for it in the ofxaddons registry
+        addon = self.addon_registry.search(addon_string)
+
+        return addon
+
+
     def remove_addon(self, addon):
         addonPath = os.path.join(self.get_addon_path(), addon.name)
         shutil.rmtree(addonPath)
 
-    def install_addon(self, addon, version):
+    def install_addon(self, addon):
         addonPath = os.path.join(self.get_addon_path(), addon.name)
         if os.path.isdir(addonPath):
             # Folder already exists
@@ -152,17 +168,17 @@ class OFRoot(object):
             else:
                 print ok()+addon.name + ": Clone done"
                 #print version
-                if version is not None:
+                if addon.version is not None:
                     #Look for at tag with this name
                     tags = git.tag()
                     #print tags
-                    if version in tags:
-                        git.checkout(version)
-                        print ok() + addon.name + ": %s checked out" % version
+                    if addon.version in tags:
+                        git.checkout(addon.version)
+                        print ok() + addon.name + ": %s checked out" % addon.version
                     else:
                         raise Exception('ERROR',
                                         'UNKNOWN_VERSION',
-                                        'No version named %s found for %s' % (version, addon.name))
+                                        'No version named %s found for %s' % (addon.version, addon.name))
                 self.install_dependencies(addon)
             return True
 
@@ -215,6 +231,18 @@ class OFRoot(object):
         }
 
 
+def print_exception(exc):
+    if exc[0] == 'OK':
+        print ok()+exc[2]
+    elif exc[0] == 'ERROR':
+        print error()+exc[2]
+    elif exc[0] == 'WARNING':
+        print warning()+exc[2]
+    else:
+        print exc
+        pass
+
+
 @click.group()
 @click.option('--of-root', envvar='OF_ROOT', default=None, help="Overwrite path to of root")
 @click.option('--of-api-url', envvar='OF_API_URL', default="http://ofxaddons.com/api/v2/", help="Overwrite url to ofxaddons.com api")
@@ -222,7 +250,6 @@ class OFRoot(object):
 #              envvar='REPO_DEBUG')
 @click.pass_context
 def cli(ctx, of_root, of_api_url):
-    print of_api_url
     if not of_root:
         of_root = find_of_root()
     ctx.obj = OFRoot(of_root, of_api_url)
@@ -241,29 +268,48 @@ def info(obj, name):
 
 
 @cli.command()
-@click.argument('name')
+@click.argument('name', default="")
 @click.pass_obj
 def install(obj, name):
-    """Installs an addon"""
+    """Installs an addon, leave out addon name to install all dependencies for current project"""
 
-    #Find addon
-    addon = obj.addon_registry.search(name)
-    version = obj.addon_registry.get_version_from_name(name)
-    if not addon:
-        print error()+"No addon named %s found" % name
-    else:
+    if len(name) == 0:
+        # Search for dependency file
+        filename = 'description.json'
+
         try:
-            obj.install_addon(addon, version)
+            # Load the description file and parse it
+            f = ProjectDescriptionFile("./"+filename)
+
+            # Install all addons
+            for dep in f.dependecies:
+                addon = obj.get_addon(dep)
+                if not addon:
+                    print error()+"No addon named %s found" % dep
+                else:
+                    try:
+                        obj.install_addon(addon)
+                    except Exception as exc:
+                        print_exception(exc)
+
+        # Json / fileload exceptions:
+        except IOError:
+            print error()+"No description file called %s found in the current directory" % filename
+        except simplejson.scanner.JSONDecodeError as e:
+            print error()+"Could not parse the %s file\n%s" % (filename, e)
         except Exception as exc:
-            if exc[0] == 'OK':
-                print ok()+exc[2]
-            elif exc[0] == 'ERROR':
-                print error()+exc[2]
-            elif exc[0] == 'WARNING':
-                print warning()+exc[2]
-            else:
-                print exc
-                pass
+            print error()+"Unkown error"
+
+    else:
+        # Find addon
+        addon = obj.get_addon(name)
+        if not addon:
+            print error()+"No addon named %s found" % name
+        else:
+            try:
+                obj.install_addon(addon)
+            except Exception as exc:
+                print_exception(exc)
     pass
 
 
@@ -274,8 +320,7 @@ def reinstall(obj, name):
     """Reinstalls an addon"""
 
     #Find addon
-    addon = obj.addon_registry.search(name)
-    version = obj.addon_registry.get_version_from_name(name)
+    addon = obj.get_addon(name)
     if not addon:
         print error()+"No addon named %s found" % name
         return
@@ -287,17 +332,9 @@ def reinstall(obj, name):
     obj.remove_addon(addon)
 
     try:
-        obj.install_addon(addon, version)
+        obj.install_addon(addon)
     except Exception as exc:
-        if exc[0] == 'OK':
-            print ok()+exc[2]
-        elif exc[0] == 'ERROR':
-            print error()+exc[2]
-        elif exc[0] == 'WARNING':
-            print warning()+exc[2]
-        else:
-            print exc
-            pass
+        print_exception(exc)
 
     pass
 

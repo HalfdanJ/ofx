@@ -7,8 +7,8 @@ setup(
     install_requires=[
         'Click',
         'sh',
-        'simplejson'
-
+        'simplejson',
+        'pyfakefs'
     ],
     entry_points='''
         [console_scripts]
