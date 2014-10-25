@@ -1,6 +1,9 @@
 OFX - OpenFrameworks Addon Manager
 ===
 [![Build Status](https://travis-ci.org/HalfdanJ/ofx.svg)](https://travis-ci.org/HalfdanJ/ofx)
+
+## This tool is depending on a change in the ofxaddons.com api that is not yet online! 
+
 ### What is it
 This is a tool aimed to help installing and managing addons for openFrameworks. 
 
