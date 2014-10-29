@@ -83,22 +83,40 @@ class TestOFX(unittest.TestCase):
             result = self.runner.invoke(ofx.cli, ['install', 'ofxmidi'])
             assert "Addon ofxMidi is already installed but is not up to date" in result.output
 
+            """ Test tag as tag """
             shutil.rmtree('addons/ofxMidi')
             result = self.runner.invoke(ofx.cli, ['install', 'danomatika/OFXMIDI@0.7.4'])
             assert "Clone done" in result.output
 
-            # TODO: Does not work yet, but should!!
-            # shutil.rmtree('addons/ofxMidi')
-            # result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@90b47b5f1c879f4fdc9a19b60ccc1a682da269e6'])
-            # assert "Clone done" in result.output
+            """ Test long sha as tag """
+            shutil.rmtree('addons/ofxMidi')
+            result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@90b47b5f1c879f4fdc9a19b60ccc1a682da269e6'])
+            os.chdir('addons/ofxMidi')
+            assert "90b47b5f1c8" in sh.git('rev-parse', 'HEAD')
+            os.chdir('../../')
+            assert "Clone done" in result.output
 
-            # shutil.rmtree('addons/ofxMidi')
-            # result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@90b47b5f1c8'])
-            # assert "Clone done" in result.output
+            """ Test short sha as tag """
+            shutil.rmtree('addons/ofxMidi')
+            result = self.runner.invoke(ofx.cli, ['install', 'danomatika/OFXMIDI@90b47b5f1c8'])
+            os.chdir('addons/ofxMidi')
+            assert "90b47b5f1c8" in sh.git('rev-parse', 'HEAD')
+            os.chdir('../../')
+            assert "Clone done" in result.output
 
-            # shutil.rmtree('addons/ofxMidi')
-            # result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@90b47b5f1c8'])
-            # assert "Clone done" in result.output
+            """ Test branch as tag """
+            shutil.rmtree('addons/ofxMidi')
+            result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@master'])
+            assert "Clone done" in result.output
+
+            """ Test installing with new sha """
+            result = self.runner.invoke(ofx.cli, ['install', 'OFXMIDI@b80cc5e1ec25b3a064'])
+            assert "b80cc5e1ec25b3a064" in sh.git('rev-parse', 'HEAD')
+
+
+
+
+            # TODO: Does not work yet, but should!!            
 
             # shutil.rmtree('addons/ofxMidi')
             # result = self.runner.invoke(ofx.cli, ['install', 'https://github.com/danomatika/ofxMidi.git'])
@@ -114,7 +132,6 @@ class TestOFX(unittest.TestCase):
 
             result = self.runner.invoke(ofx.cli, ['install', 'ofxtimeline'])
             assert result.exit_code == 0
-            print result.output
             assert "ofxTimeline: Clone done" in result.output
             assert "ofxTween: Clone done" in result.output
             assert os.path.exists('addons/ofxTimeline/src')
