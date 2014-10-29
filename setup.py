@@ -8,7 +8,7 @@ setup(
     author="Jonas Jongejan",
     author_email="ofx@halfdanj.dk",
     url="https://github.com/HalfdanJ/ofx",
-    download_url='https://github.com/HalfdanJ/ofx/archive/0.1.zip',
+    download_url='https://github.com/HalfdanJ/ofx/tarball/0.1',
     version='0.1',
     py_modules=['ofx'],
     install_requires=[
