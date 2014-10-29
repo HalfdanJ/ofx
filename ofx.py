@@ -76,7 +76,7 @@ class AddonsRegistry(object):
         self.url = api_url
 
     def call_api(self, query):
-        #print self.API_URL+query
+        # print self.url+query
         f = urllib2.urlopen(self.url+query)
         json = simplejson.load(f)
         return json
@@ -88,13 +88,13 @@ class AddonsRegistry(object):
         addon_name = match.group('addon_name')
 
         if owner_name:
-            json = self.call_api("addon/"+owner_name+"/"+addon_name)
+            json = self.call_api("users/"+owner_name+"/repos/"+addon_name)
         else:
-            json = self.call_api("addon/"+addon_name)
-        if not json:
+            json = self.call_api("repos/"+addon_name)
+        if not json['repos']:
             return None
 
-        addon = Addon(json)
+        addon = Addon(json['repos'][0])
         addon.version = self.get_version_from_name(name)
         return addon
 
@@ -107,7 +107,6 @@ class OFRoot(object):
     def __init__(self, path, url):
         self.path = path
         self.addon_registry = AddonsRegistry(url)
-
         if not self.path:
             raise click.UsageError('You don\'t seem to be in a openframeworks folder')
         if not os.path.exists(self.get_addon_path()):
@@ -148,14 +147,24 @@ class OFRoot(object):
                 currentSha = sh.git('rev-parse', 'HEAD').rstrip()
                 remoteSha = addon.latest_commit['sha']
 
-                if currentSha == remoteSha:
-                    raise Exception('OK',
-                                    'ALREADY_INSTALLED',
-                                    'Addon %s is already installed and up to date' % addon.name)
+                if addon.version is not None:
+                    try:
+                        git.checkout(addon.version)
+                    except Exception:
+                        raise Exception('ERROR',
+                                        'UNKNOWN_VERSION',
+                                        'No version named %s found for %s' % (addon.version, addon.name))
+
+                    print ok() + addon.name + ": %s checked out" % addon.version
                 else:
-                    raise Exception('WARNING',
-                                    'ALREADY_INSTALLED_OUTDATED',
-                                    'Addon %s is already installed but is not up to date. Consider running:\n' % addon.name + note("ofx update %s" % addon.name))
+                    if currentSha == remoteSha:
+                        raise Exception('OK',
+                                        'ALREADY_INSTALLED',
+                                        'Addon %s is already installed and up to date' % addon.name)
+                    else:
+                        raise Exception('WARNING',
+                                        'ALREADY_INSTALLED_OUTDATED',
+                                        'Addon %s is already installed but is not up to date. Consider running:\n' % addon.name + note("ofx update %s" % addon.name))
         else:
             print '>> Cloning %s' % addon.clone_url
             os.chdir(self.get_addon_path())
@@ -167,18 +176,17 @@ class OFRoot(object):
                 raise Exception('ERROR', 'CLONE_ERROR', "Something went wrong while cloning from "+addon.clone_url)
             else:
                 print ok()+addon.name + ": Clone done"
-                #print version
+                
                 if addon.version is not None:
-                    #Look for at tag with this name
-                    tags = git.tag()
-                    #print tags
-                    if addon.version in tags:
+                    try:
                         git.checkout(addon.version)
-                        print ok() + addon.name + ": %s checked out" % addon.version
-                    else:
+                    except Exception:
                         raise Exception('ERROR',
                                         'UNKNOWN_VERSION',
                                         'No version named %s found for %s' % (addon.version, addon.name))
+
+                    print ok() + addon.name + ": %s checked out" % addon.version
+
                 self.install_dependencies(addon)
             return True
 
@@ -196,7 +204,7 @@ class OFRoot(object):
             for dependency in config['dependecies']:
                 #print dependency
                 try:
-                    addon = self.get_addon(dependency)                    
+                    addon = self.get_addon(dependency)
                     self.install_addon(addon)
 
                 except Exception as exc:
@@ -244,7 +252,7 @@ def print_exception(exc):
 
 @click.group()
 @click.option('--of-root', envvar='OF_ROOT', default=None, help="Overwrite path to of root")
-@click.option('--of-api-url', envvar='OF_API_URL', default="http://ofxaddons.com/api/v2/", help="Overwrite url to ofxaddons.com api")
+@click.option('--of-api-url', envvar='OF_API_URL', default="http://ofxaddons.com/api/v1/", help="Overwrite url to ofxaddons.com api")
 #@click.option('--debug/--no-debug', default=False,
 #              envvar='REPO_DEBUG')
 @click.pass_context
@@ -253,6 +261,7 @@ def cli(ctx, of_root, of_api_url):
         of_root = find_of_root()
     ctx.obj = OFRoot(of_root, of_api_url)
     ctx.obj.current_dir = os.getcwd()
+    #print of_root
 
 @cli.command()
 @click.argument('name')
@@ -308,7 +317,7 @@ def install(obj, name):
             print error()+"No addon named %s found" % name
         else:
             try:
-                obj.install_addon(addon)    
+                obj.install_addon(addon)
                 
             except Exception as exc:
                 print_exception(exc)
