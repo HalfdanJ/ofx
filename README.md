@@ -2,24 +2,63 @@ OFX - OpenFrameworks Addon Manager
 ===
 [![Build Status](https://travis-ci.org/HalfdanJ/ofx.svg)](https://travis-ci.org/HalfdanJ/ofx)
 
-## This tool is depending on a change in the ofxaddons.com api that is not yet online! 
-
 ### What is it
 This is a tool aimed to help installing and managing addons for openFrameworks. 
 
 ### Features
-- Install addons
+- Install addons easily from the commandline
 - Automatic install dependency addons based on the addon_config.mk file
+- Read addon dependencies from your project, and install the required addons
 
 ### Future features
 - Save addon dependencies in projects
-- Read addon dependencies and install addons
+
+## Install
+```
+pip install ofx
+ofx --help
+``
 
 ### Install for development
-- Clone the repository and cd to it
-- Install python virtualenv `sudo pip install virtualenv`
-- Create a virtual enviroment inside the ofx tool `virtualenv venv`
-- Activate the virtual enviroment `. venv/bin/activate` (to deactivate write `deactivate`)
-- Install the ofx tool `pip install --editable .`
-- Run the tool `ofx --help`
+- Clone the repository 
+
+```
+clone https://github.com/HalfdanJ/ofx.git
+```
+
+- Go to the new folder
+
+```
+cd ofx
+```
+
+- Install python virtualenv (a virtual python enviroment, recomended, but not required)
+
+```
+sudo pip install virtualenv
+```
+
+- Create a virtual enviroment inside the ofx tool 
+
+```
+virtualenv venv
+```
+
+- Activate the virtual enviroment  (to deactivate write `deactivate`)
+
+```
+. venv/bin/activate
+``` 
+
+- Install the ofx tool 
+
+```
+pip install --editable .
+```
+
+- Run the tool 
+
+```
+ofx --help
+```
 
