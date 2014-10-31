@@ -17,7 +17,7 @@ This is a tool aimed to help installing and managing addons for openFrameworks.
 ```
 pip install ofx
 ofx --help
-``
+```
 
 ### Install for development
 - Clone the repository 
