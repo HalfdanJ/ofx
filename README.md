@@ -12,6 +12,7 @@ This is a tool aimed to help installing and managing addons for openFrameworks.
 
 ### Future features
 - Save addon dependencies in projects
+- Call apothecary to build dependency libraries automaticly for the current platform.
 
 ## Install
 ```
